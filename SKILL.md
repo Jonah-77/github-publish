@@ -320,6 +320,8 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 
 安装器写入 `.platform` 标记（`windows` / `posix`），`-Uninstall` / `--uninstall` 只有标记对得上才删目录。发布侧由 `.github/workflows/package.yml` 打两个 zip（`github-publish-windows.zip` / `github-publish-posix.zip`），手机直接下 posix 那个，包里没有任何 `.ps1`。
 
+Android / Linux（含云主机）/ macOS 共用同一份 `install.sh` 与 `.sh` 脚本：三端只有包管理器不同，`setup.sh` 自己探测（`pkg` / `apt` / `dnf` / `brew`），非 root 时自动套 `sudo`。
+
 注意：这里没有编译环节，全部是文本脚本，"安装"就是复制，"卸载"就是删目录加跑 `teardown.sh`。
 
 ## 变更记录

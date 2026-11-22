@@ -36,7 +36,17 @@ TS="$(date +%Y-%m-%dT%H:%M:%S)"
 if [ -n "${PREFIX:-}" ] && printf '%s' "$PREFIX" | grep -q 'com.termux'; then
     ENV_NAME='termux'; PKG_INSTALL='pkg install -y'; PKG_UNINSTALL='pkg uninstall -y'
 elif command -v apt-get >/dev/null 2>&1; then
-    ENV_NAME='debian'; PKG_INSTALL='apt-get install -y'; PKG_UNINSTALL='apt-get remove -y'
+    if [ "$(id -u)" -eq 0 ]; then
+        ENV_NAME='debian'; PKG_INSTALL='apt-get install -y'; PKG_UNINSTALL='apt-get remove -y'
+    else
+        ENV_NAME='debian (sudo)'; PKG_INSTALL='sudo apt-get install -y'; PKG_UNINSTALL='sudo apt-get remove -y'
+    fi
+elif command -v dnf >/dev/null 2>&1; then
+    if [ "$(id -u)" -eq 0 ]; then
+        ENV_NAME='rhel'; PKG_INSTALL='dnf install -y'; PKG_UNINSTALL='dnf remove -y'
+    else
+        ENV_NAME='rhel (sudo)'; PKG_INSTALL='sudo dnf install -y'; PKG_UNINSTALL='sudo dnf remove -y'
+    fi
 elif command -v brew >/dev/null 2>&1; then
     ENV_NAME='brew'; PKG_INSTALL='brew install'; PKG_UNINSTALL='brew uninstall'
 else

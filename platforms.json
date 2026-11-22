@@ -1,6 +1,6 @@
 {
   "name": "github-publish",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "GitHub channel skill: classified routing, four write gates, read-only check and idempotent publish.",
   "core": [
     "SKILL.md",
@@ -10,6 +10,7 @@
   ],
   "platforms": {
     "windows": {
+      "family": "windows",
       "runtime": "PowerShell 5.1 / 7.x",
       "installer": "install/install.ps1",
       "files": [
@@ -25,7 +26,48 @@
       }
     },
     "android": {
-      "runtime": "Termux + bash 4+ (also Linux, macOS)",
+      "family": "posix",
+      "runtime": "Termux + bash 4+; pkg for packages",
+      "installer": "install/install.sh",
+      "files": [
+        "install/install.sh",
+        "scripts/check.sh",
+        "scripts/publish.sh",
+        "scripts/scan-traces.sh",
+        "scripts/setup.sh",
+        "scripts/teardown.sh"
+      ],
+      "entrypoints": {
+        "check": "scripts/check.sh",
+        "publish": "scripts/publish.sh",
+        "scan_traces": "scripts/scan-traces.sh",
+        "setup": "scripts/setup.sh",
+        "teardown": "scripts/teardown.sh"
+      }
+    },
+    "linux": {
+      "family": "posix",
+      "runtime": "bash 4+; apt / dnf, sudo used when not root",
+      "installer": "install/install.sh",
+      "files": [
+        "install/install.sh",
+        "scripts/check.sh",
+        "scripts/publish.sh",
+        "scripts/scan-traces.sh",
+        "scripts/setup.sh",
+        "scripts/teardown.sh"
+      ],
+      "entrypoints": {
+        "check": "scripts/check.sh",
+        "publish": "scripts/publish.sh",
+        "scan_traces": "scripts/scan-traces.sh",
+        "setup": "scripts/setup.sh",
+        "teardown": "scripts/teardown.sh"
+      }
+    },
+    "macos": {
+      "family": "posix",
+      "runtime": "bash 4+ (or /usr/local/bin/bash); brew for packages",
       "installer": "install/install.sh",
       "files": [
         "install/install.sh",
@@ -43,5 +85,9 @@
         "teardown": "scripts/teardown.sh"
       }
     }
+  },
+  "packages": {
+    "github-publish-windows.zip": ["windows"],
+    "github-publish-posix.zip": ["android", "linux", "macos"]
   }
 }

@@ -43,12 +43,15 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 | 平台 | 运行时 | 入口脚本 | setup / teardown |
 |---|---|---|---|
 | Windows | PowerShell 5.1 / 7.x | `check.ps1` / `publish.ps1` / `scan-traces.ps1` | 手工装 gh（winget），卸 = 删目录 |
-| Android（Termux） | bash 4+ | `check.sh` / `publish.sh` / `scan-traces.sh` | `setup.sh` / `teardown.sh` |
-| Linux / macOS | bash 4+ | 同上 | 同上 |
+| Android（Termux） | bash 4+ | `check.sh` / `publish.sh` / `scan-traces.sh` | `setup.sh` / `teardown.sh`（`pkg`） |
+| Linux（含云主机） | bash 4+ | 同上 | 同上（`apt` / `dnf`，非 root 自动加 `sudo`） |
+| macOS | bash 4+ | 同上 | 同上（`brew`） |
+
+`platforms.json` 把 android / linux / macOS 归到同一个 `posix` 家族：三端脚本完全同一份，只是包管理器不同，`setup.sh` 自己探测。
 
 **只装自己平台的代码**，两条路都行：
 
-1. **下载 release 里的压缩包**（推荐，手机用这个）：`github-publish-windows.zip` 里只有 `.ps1`，`github-publish-posix.zip` 里只有 `.sh`，另一平台的代码根本不在包里。
+1. **下载 release 里的压缩包**（推荐，手机用这个）：`github-publish-windows.zip` 里只有 `.ps1`，`github-publish-posix.zip` 里只有 `.sh`（Android / Linux / macOS 通用），另一平台的代码根本不在包里。
 2. **从源码装**：跑对应平台的安装器，它只复制本平台文件，其余一律不带：
 
 ```powershell

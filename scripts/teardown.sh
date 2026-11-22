@@ -40,7 +40,9 @@ fi
 if [ -n "${PREFIX:-}" ] && printf '%s' "$PREFIX" | grep -q 'com.termux'; then
     PKG_UNINSTALL='pkg uninstall -y'
 elif command -v apt-get >/dev/null 2>&1; then
-    PKG_UNINSTALL='apt-get remove -y'
+    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='apt-get remove -y'; else PKG_UNINSTALL='sudo apt-get remove -y'; fi
+elif command -v dnf >/dev/null 2>&1; then
+    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='dnf remove -y'; else PKG_UNINSTALL='sudo dnf remove -y'; fi
 elif command -v brew >/dev/null 2>&1; then
     PKG_UNINSTALL='brew uninstall'
 else
