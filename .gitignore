@@ -1,0 +1,9 @@
+.env
+bin/
+obj/
+*.user
+CLAUDE.md
+.claude/
+AGENTS.md
+.cursorrules
+.mcp.json
