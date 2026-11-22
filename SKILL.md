@@ -304,6 +304,24 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 
 本仓库的 `SKILL.md` 和 scanner 本身就是在写这些痕迹词，跑 `publish` 必然出现候选。逐条确认全是文档与正则字面量之后，按 §二 的约定用 `--skip-gates` 放行——这是"人工确认后的放行"，不是把门禁关掉跳过审查。
 
+### 13.4 按平台选择性安装
+
+`platforms.json` 是唯一清单：哪个平台装哪些文件。两条落地方式都只带本平台的那份，另一平台的代码不进目标目录。
+
+```powershell
+.\install\install.ps1 -DryRun     # Windows：只复制 .ps1，不碰 .sh
+.\install\install.ps1
+```
+
+```bash
+./install/install.sh --dry-run    # Termux / Linux / macOS：只复制 .sh，不碰 .ps1
+./install/install.sh
+```
+
+安装器写入 `.platform` 标记（`windows` / `posix`），`-Uninstall` / `--uninstall` 只有标记对得上才删目录。发布侧由 `.github/workflows/package.yml` 打两个 zip（`github-publish-windows.zip` / `github-publish-posix.zip`），手机直接下 posix 那个，包里没有任何 `.ps1`。
+
+注意：这里没有编译环节，全部是文本脚本，"安装"就是复制，"卸载"就是删目录加跑 `teardown.sh`。
+
 ## 变更记录
 
 - 2026-11-18 建立：gh 安装 + 设备码授权 + 建仓 + Pages + CI + 脱敏清单。

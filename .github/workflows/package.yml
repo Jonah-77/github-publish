@@ -1,0 +1,64 @@
+name: package
+
+# Builds one archive per platform, so a user downloads only the files their agent can run.
+# Trigger: pushing a v* tag, or manual dispatch.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build per-platform archives
+        run: |
+          set -eu
+          mkdir -p dist/windows/scripts dist/windows/install
+          mkdir -p dist/posix/scripts dist/posix/install
+
+          # shared docs, identical in both archives
+          for d in dist/windows dist/posix; do
+            cp SKILL.md README.md LICENSE platforms.json "$d"/
+          done
+
+          # windows payload: PowerShell only
+          cp scripts/check.ps1 scripts/publish.ps1 scripts/scan-traces.ps1 dist/windows/scripts/
+          cp install/install.ps1 dist/windows/install/
+
+          # posix payload: bash only
+          cp scripts/check.sh scripts/publish.sh scripts/scan-traces.sh \
+             scripts/setup.sh scripts/teardown.sh dist/posix/scripts/
+          cp install/install.sh dist/posix/install/
+          chmod +x dist/posix/scripts/*.sh dist/posix/install/install.sh
+
+          # no cross-platform leftovers
+          test -z "$(find dist/windows -name '*.sh' -print -quit)"
+          test -z "$(find dist/posix -name '*.ps1' -print -quit)"
+
+          (cd dist/windows && zip -qr ../github-publish-windows.zip .)
+          (cd dist/posix   && zip -qr ../github-publish-posix.zip .)
+          ls -l dist/*.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-publish-windows
+          path: dist/github-publish-windows.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-publish-posix
+          path: dist/github-publish-posix.zip
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/github-publish-windows.zip
+            dist/github-publish-posix.zip

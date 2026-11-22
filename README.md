@@ -23,6 +23,8 @@
 
 ```
 SKILL.md                   # 完整流程：路由表、门禁、各类命令、排障表、硬规矩
+platforms.json             # 平台清单：哪个平台该装哪些文件（打包与安装器共用）
+LICENSE
 scripts/check.ps1          # Windows：只读核查，不写盘不推送
 scripts/publish.ps1        # Windows：门禁 → fetch 比对 → add/commit/push → ls-remote 校验
 scripts/scan-traces.ps1    # Windows：署名痕迹扫描，只出候选不自动改
@@ -31,12 +33,37 @@ scripts/publish.sh         # Termux / Linux / macOS：同 publish.ps1
 scripts/scan-traces.sh     # Termux / Linux / macOS：同 scan-traces.ps1
 scripts/setup.sh           # 装缺的工具，并把"装了什么"记成清单
 scripts/teardown.sh        # 按清单只删自己装的那部分
+install/install.ps1        # Windows 安装器：只复制 Windows 那份
+install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 那份
+.github/workflows/package.yml   # 按平台打两个 zip，用户只下自己那个
 ```
 
-## 跨平台
+## 平台与选择性安装
 
-Windows 用 `.ps1`，Android（Termux）/ Linux / macOS 用同名 `.sh`，四行输出与退出码完全一致。
-bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH 解析，不写死安装路径。
+| 平台 | 运行时 | 入口脚本 | setup / teardown |
+|---|---|---|---|
+| Windows | PowerShell 5.1 / 7.x | `check.ps1` / `publish.ps1` / `scan-traces.ps1` | 手工装 gh（winget），卸 = 删目录 |
+| Android（Termux） | bash 4+ | `check.sh` / `publish.sh` / `scan-traces.sh` | `setup.sh` / `teardown.sh` |
+| Linux / macOS | bash 4+ | 同上 | 同上 |
+
+**只装自己平台的代码**，两条路都行：
+
+1. **下载 release 里的压缩包**（推荐，手机用这个）：`github-publish-windows.zip` 里只有 `.ps1`，`github-publish-posix.zip` 里只有 `.sh`，另一平台的代码根本不在包里。
+2. **从源码装**：跑对应平台的安装器，它只复制本平台文件，其余一律不带：
+
+```powershell
+.\install\install.ps1 -DryRun      # Windows，先看要复制哪些
+.\install\install.ps1
+```
+
+```bash
+./install/install.sh --dry-run     # Termux / Linux / macOS
+./install/install.sh
+```
+
+安装器会写一个 `.platform` 标记；`install.* -Uninstall` 只在标记对得上时才删目录，避免误删你放在同一路径下的其他东西。
+
+这里没有"编译"这一步：全部是文本脚本，装 = 复制，卸 = 删除 + `teardown`。
 
 ## 关键设计
 
@@ -48,9 +75,10 @@ bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH �
 
 ## 前置条件
 
-Windows + PowerShell 5.1 / 7 均可；已安装 [GitHub CLI](https://cli.github.com/) 并 `gh auth login`（scopes 需含 `repo`）；git 提交身份建议用 `noreply` 邮箱。
-
-脚本内的 `gh` / `git` 路径按本机实际情况调整（见 SKILL.md §十二）。
+- Windows 需 PowerShell 5.1 / 7；Android（Termux）/ Linux / macOS 需 bash 4+
+- [GitHub CLI](https://cli.github.com/) 已安装并 `gh auth login`（scopes 需含 `repo`）；Termux 用 `pkg install gh`
+- git 提交身份建议用 `noreply` 邮箱
+- `.ps1` 的 gh / git 路径按本机实际情况调整（见 SKILL.md §十二）；`.sh` 用参数或 `GIT_BIN` / `GH_BIN` 覆盖
 
 ## 安装与卸载（组件跟着账本走）
 

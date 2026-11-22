@@ -1,0 +1,47 @@
+{
+  "name": "github-publish",
+  "version": "2.1.0",
+  "description": "GitHub channel skill: classified routing, four write gates, read-only check and idempotent publish.",
+  "core": [
+    "SKILL.md",
+    "README.md",
+    "LICENSE",
+    "platforms.json"
+  ],
+  "platforms": {
+    "windows": {
+      "runtime": "PowerShell 5.1 / 7.x",
+      "installer": "install/install.ps1",
+      "files": [
+        "install/install.ps1",
+        "scripts/check.ps1",
+        "scripts/publish.ps1",
+        "scripts/scan-traces.ps1"
+      ],
+      "entrypoints": {
+        "check": "scripts/check.ps1",
+        "publish": "scripts/publish.ps1",
+        "scan_traces": "scripts/scan-traces.ps1"
+      }
+    },
+    "android": {
+      "runtime": "Termux + bash 4+ (also Linux, macOS)",
+      "installer": "install/install.sh",
+      "files": [
+        "install/install.sh",
+        "scripts/check.sh",
+        "scripts/publish.sh",
+        "scripts/scan-traces.sh",
+        "scripts/setup.sh",
+        "scripts/teardown.sh"
+      ],
+      "entrypoints": {
+        "check": "scripts/check.sh",
+        "publish": "scripts/publish.sh",
+        "scan_traces": "scripts/scan-traces.sh",
+        "setup": "scripts/setup.sh",
+        "teardown": "scripts/teardown.sh"
+      }
+    }
+  }
+}
