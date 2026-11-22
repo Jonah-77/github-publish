@@ -1,9 +1,9 @@
-# check.ps1 - read-only GitHub state check. Never stages, commits, pushes or changes the repo.
+﻿# check.ps1 - read-only GitHub state check. Never stages, commits, pushes or changes the repo.
 # ASCII only on purpose: runs under Windows PowerShell 5.1 and pwsh 7.x without BOM issues.
 #
 # Usage:
-#   & '<skill dir>\scripts\check.ps1' -Repo 'C:\path\to\repo'
-#   & '<skill dir>\scripts\check.ps1' -Repo 'C:\path\to\repo' -Branch 'dev'
+#   & '<skill dir>\scripts\check.ps1' -Repo '<repo>'
+#   & '<skill dir>\scripts\check.ps1' -Repo '<repo>' -Branch 'dev'
 
 param(
     [Parameter(Mandatory = $true)][string]$Repo,

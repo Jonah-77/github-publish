@@ -1,15 +1,15 @@
-# publish.ps1 - the incremental-sync path (intent=sync) from the github-publish skill.
+﻿# publish.ps1 - the incremental-sync path (intent=sync) from the github-publish skill.
 # Fixed order, do not reorder:
 #   identity gate -> desensitize gate -> trace gate -> fetch/compare -> add -> commit -> push -> verify
 # It never creates a repo, never touches Pages/topics/releases, never force-pushes.
 # ASCII only on purpose: runs under Windows PowerShell 5.1 and pwsh 7.x without BOM issues.
 #
 # Usage:
-#   & '<skill dir>\scripts\publish.ps1' -Repo 'C:\path\to\repo' -Message "Fix the title bar colour"
-#   & '<skill dir>\scripts\publish.ps1' -Repo 'C:\path\to\repo' -MessageFile 'C:\tmp\msg.txt'
-#   & '<skill dir>\scripts\publish.ps1' -Repo 'C:\path\to\repo' -AllowFetchSync
-#   & '<skill dir>\scripts\publish.ps1' -Repo 'C:\path\to\repo' -DryRun      # gates + compare only
-#   & '<skill dir>\scripts\publish.ps1' -Repo 'C:\path\to\repo' -Message "..." -WaitCi
+#   & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -Message "Fix the title bar colour"
+#   & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -MessageFile '<msgfile>'
+#   & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -AllowFetchSync
+#   & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -DryRun      # gates + compare only
+#   & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -Message "..." -WaitCi
 #
 # Exit codes: 0 ok / nothing-to-push, 2 blocked (needs a human), 1 failed (command error).
 

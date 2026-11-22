@@ -22,11 +22,21 @@
 ## 目录
 
 ```
-SKILL.md                 # 完整流程：路由表、门禁、各类命令、排障表、硬规矩
-scripts/check.ps1        # 只读核查，不写盘不推送
-scripts/publish.ps1      # 增量同步：门禁 → fetch 比对 → add/commit/push → ls-remote 校验
-scripts/scan-traces.ps1  # 署名痕迹扫描，只出候选不自动改
+SKILL.md                   # 完整流程：路由表、门禁、各类命令、排障表、硬规矩
+scripts/check.ps1          # Windows：只读核查，不写盘不推送
+scripts/publish.ps1        # Windows：门禁 → fetch 比对 → add/commit/push → ls-remote 校验
+scripts/scan-traces.ps1    # Windows：署名痕迹扫描，只出候选不自动改
+scripts/check.sh           # Termux / Linux / macOS：同 check.ps1
+scripts/publish.sh         # Termux / Linux / macOS：同 publish.ps1
+scripts/scan-traces.sh     # Termux / Linux / macOS：同 scan-traces.ps1
+scripts/setup.sh           # 装缺的工具，并把"装了什么"记成清单
+scripts/teardown.sh        # 按清单只删自己装的那部分
 ```
+
+## 跨平台
+
+Windows 用 `.ps1`，Android（Termux）/ Linux / macOS 用同名 `.sh`，四行输出与退出码完全一致。
+bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH 解析，不写死安装路径。
 
 ## 关键设计
 
@@ -42,9 +52,31 @@ Windows + PowerShell 5.1 / 7 均可；已安装 [GitHub CLI](https://cli.github.
 
 脚本内的 `gh` / `git` 路径按本机实际情况调整（见 SKILL.md §十二）。
 
-## 安装
+## 安装与卸载（组件跟着账本走）
 
-把整个目录放进你的 skill 目录即可，例如 `~/.agent-skills/github-publish`，需要时以链接方式共享给多个客户端。
+```bash
+./scripts/setup.sh --dry-run     # 先看它会做什么
+./scripts/setup.sh               # 缺什么装什么（Termux: pkg install gh git）
+./scripts/setup.sh --minimal     # 只装 git，推送用 token，不装 gh
+```
+
+`setup.sh` 除了装工具，还会把"装了什么"写进 `$HOME/.github-publish/state.tsv`：包名、创建的文件、改过的 git 配置键，并区分"本次装的"和"原本就有"。
+
+以后要卸载：
+
+```bash
+~/github-publish-uninstall.sh                  # 只出计划，什么都不改
+~/github-publish-uninstall.sh --yes            # 只删清单里"本次装的"
+~/github-publish-uninstall.sh --yes --purge-auth   # 连 gh 登录态一起清
+```
+
+三点保证：
+
+1. **原本就有的工具一律不碰**（清单里标 `preexisting`）
+2. **清单在 skill 目录之外**，先删了 skill 文件夹也还能清理
+3. 卸载脚本在 `setup.sh` 时被复制到 `$HOME`，和下一条一样能独立运行
+
+包管理器层面做不到"删目录即自动卸载"，所以约定是**先跑卸载脚本，再删 skill 目录**。
 
 ## 许可
 

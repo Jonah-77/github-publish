@@ -3,8 +3,8 @@
 # because cursor / agent / AI are common words with legitimate uses.
 #
 # Usage:
-#   & '<skill dir>\scripts\scan-traces.ps1' -Repo 'C:\path\to\repo'
-#   & '<skill dir>\scripts\scan-traces.ps1' -Repo 'C:\path\to\repo' -Quiet
+#   & '<skill dir>\scripts\scan-traces.ps1' -Repo '<repo>'
+#   & '<skill dir>\scripts\scan-traces.ps1' -Repo '<repo>' -Quiet
 #
 # Note on paths: drive-letter paths are matched by regex, not by literal 'D:\'.
 # A literal would also hit 'name:\s*' and 'file://' because -like is case-insensitive.
@@ -55,8 +55,8 @@ $categories = [ordered]@{
     )
 }
 
-# Absolute drive path with at least two segments: C:\Users\me\..., D:\DSH\workspace\...
-# Two segments are required so that placeholders such as 'D:\…' and 'e:\s' do not match.
+# Absolute drive path with at least two segments: C:\Users\<me>\..., D:\Work\...
+# Two segments are required so that placeholders such as 'D:\...' and 'e:\s' do not match.
 $pathRegex = '(?i)(?<![A-Za-z])[A-Z]:[\\/][A-Za-z0-9_.\-]+[\\/]'
 
 $allLiterals = @()
@@ -94,6 +94,9 @@ foreach ($rel in $files) {
 
     $pathLines = Select-String -LiteralPath $full -Pattern $pathRegex -ErrorAction SilentlyContinue
     foreach ($h in $pathLines) {
+        # documentation placeholders (C:\Users\<me>\ ...) are not private paths
+        $stripped = $h.Line -replace 'C:\\Users\\<[^>]*>', '' -replace '<[^>]*>', ''
+        if ($stripped -notmatch $pathRegex) { continue }
         $text = $h.Line.Trim()
         if ($text.Length -gt 140) { $text = $text.Substring(0, 140) + ' ...' }
         $hits.Add([pscustomobject]@{ Category = 'private-path'; File = $rel; Line = $h.LineNumber; Text = $text })

@@ -59,7 +59,7 @@ description: 只要动作会落在这个 GitHub 账号或它的远端仓库上�
    |---|---|---|
    | 生成声明 | `Generated with ...`、`Co-Authored-By: Claude`、「部分内容可能由 AI 生成」 | 删，连前面的空行一起删 |
    | 机器视角 | 「面向下一个接手这个库的 **agent**」、「重用**本机 GCM 凭据**」、`this machine` | 改成人话：接手的人、本机环境、本地凭据 |
-   | 本机私路径 | `D:\Work\project\...`、`C:\Users\<me>\...` | 换占位符 |
+   | 本机私路径 | `D:\Work\...`、`C:\Users\<me>\...` | 换占位符 |
    | 工具配置 | `CLAUDE.md`、`.claude/`、`.cursorrules`、`AGENTS.md`、`.mcp.json` | 整个不提交，`.gitignore` 挡住 |
    | 露动机的句子 | 「截成图片、再**交给 AI 分析**」 | 是产品定位就留；只是顺手用的，换成真实用途 |
 
@@ -262,6 +262,48 @@ NOTE=<一句话原因或下一步>
 | 网络特征 | 偶发 `Recv failure`，重试一次基本能过 |
 | 主力仓库示例 | `<owner>/<repo>`（Pages 源 `main` + `/docs`） |
 
+## 十三、跨平台：手机 / Linux / macOS
+
+Windows 以外的场合（Android 的 Termux、Linux、macOS）没有 PowerShell，用同一套流程的 bash 版，语义与 PowerShell 版一致，输出仍是四行 `STATUS / CLASS / SHA / REMOTE / NOTE`。
+
+| 用途 | Windows | 其它平台 |
+|---|---|---|
+| 只读核查 | `scripts/check.ps1` | `scripts/check.sh` |
+| 增量同步 | `scripts/publish.ps1` | `scripts/publish.sh` |
+| 痕迹扫描 | `scripts/scan-traces.ps1` | `scripts/scan-traces.sh` |
+| 装/卸工具链 | 手工 | `scripts/setup.sh` / `scripts/teardown.sh` |
+
+bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH 的顺序解析，不写死 `C:\Program Files\...`。
+
+### 13.1 手机（Termux）从零到能推
+
+```bash
+./scripts/setup.sh            # 缺什么装什么，并记账；先 --dry-run 可只看计划
+gh auth login --hostname github.com --git-protocol https --web   # 设备码自己粘，不进对话
+./scripts/check.sh --repo <repo>      # 确认 auth / 远端状态
+./scripts/publish.sh --repo <repo> --message "<动词开头的一句话>"
+```
+
+Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编二进制；git 的 https 凭据通过 `gh auth git-credential` 接管，不依赖 GCM。
+
+### 13.2 组件与 skill 绑定：先记账，再卸载
+
+`setup.sh` 干两件事：缺什么装什么；**把装了什么写进 `$HOME/.github-publish/state.tsv`**。清单记三类——`pkg`（包）、`file`（创建的文件）、`gitconfig`（改过的配置键）——并且只记"本次由我安装"的，事先就存在的标成 `preexisting`。
+
+`teardown.sh` 默认**只出计划不动手**，`--yes` 才执行，且只删清单里 `installed` 的条目，`preexisting` 一律不碰。它还会被复制一份到 `~/github-publish-uninstall.sh`：**先删了 skill 目录也照样能清理**。
+
+| 命令 | 效果 |
+|---|---|
+| `~/github-publish-uninstall.sh` | 列出将删/将留的清单 |
+| `~/github-publish-uninstall.sh --yes` | 真删本次装的包、文件、配置键 |
+| `~/github-publish-uninstall.sh --yes --purge-auth` | 连 `~/.config/gh` 的登录态一起删 |
+
+一条前提要认清：包管理器层面做不到"删目录即自动卸载"，所以约定是**先跑卸载脚本，再删目录**；清单放在 skill 目录之外就是为了这个。
+
+### 13.3 本仓库自己的例外
+
+本仓库的 `SKILL.md` 和 scanner 本身就是在写这些痕迹词，跑 `publish` 必然出现候选。逐条确认全是文档与正则字面量之后，按 §二 的约定用 `--skip-gates` 放行——这是"人工确认后的放行"，不是把门禁关掉跳过审查。
+
 ## 变更记录
 
 - 2026-11-18 建立：gh 安装 + 设备码授权 + 建仓 + Pages + CI + 脱敏清单。
@@ -269,3 +311,4 @@ NOTE=<一句话原因或下一步>
 - 2026-11-19 重构为「分类路由」：R/A/B/C/D/E 六类各自的入口、前置检查与脚本；写类统一四道门禁（身份/脱敏/痕迹/远端）；新增「被其他工具调用」的输入输出契约与七条约束；`publish.ps1` 补 fetch 比对、门禁、冲突拒绝、幂等；新增只读脚本 `check.ps1`；`scan-traces.ps1` 补 BOM 修掉 PS 5.1 乱码。
 - 2026-11-19 补强推送链路：门禁改为扫描「已跟踪 + 未忽略的新文件」（新建文件里的密钥原本会漏过）；`publish.ps1` 新增 `-DryRun`（不碰 index 的预演）与 `-WaitCi`（按 `headSha` 匹配、拒绝拿上一次运行的结论充数）。
 - 2026-11-19 明确触发边界：新增 §零（必须进来 / 不要进来 两张清单）与「命令简单不是跳过理由」的自我提醒；description 改成"会在 GitHub 上落地的动作必须走本 skill，纯本地操作不用"。
+- 2026-11-22 补 bash 版：`check.sh` / `publish.sh` / `scan-traces.sh`，工具路径改为参数与 PATH 解析，Termux / Linux / macOS 可直接跑；新增 `setup.sh`（装工具并记账）与 `teardown.sh`（只删自己装的），清单落在 skill 目录之外，删目录后仍可回滚。
