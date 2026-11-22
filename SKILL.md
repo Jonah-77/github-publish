@@ -277,12 +277,26 @@ bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH �
 
 ### 13.1 手机（Termux）从零到能推
 
+先定安装目录。任何客户端如果导出了 `DSH_HOME`，安装器会自动装到 `$DSH_HOME/skills/github-publish`（那是客户端扫描 skill 的位置）；没有这个变量时落到 `~/.agent-skills/github-publish`。两者都能用 `--target` 覆盖。
+
 ```bash
-./scripts/setup.sh            # 缺什么装什么，并记账；先 --dry-run 可只看计划
-gh auth login --hostname github.com --git-protocol https --web   # 设备码自己粘，不进对话
-./scripts/check.sh --repo <repo>      # 确认 auth / 远端状态
-./scripts/publish.sh --repo <repo> --message "<动词开头的一句话>"
+SKILL_DIR="${DSH_HOME:-$HOME}/skills/github-publish"      # 或 $HOME/.agent-skills/github-publish
+"$SKILL_DIR/scripts/setup.sh" --dry-run                    # 先看计划
+"$SKILL_DIR/scripts/setup.sh"
 ```
+
+```bash
+gh auth login --hostname github.com --git-protocol https --web
+```
+
+**这一步只能由人来做**：设备码要在浏览器里粘贴，Agent 没有交互式 tty，无法代填、也不该把码写进对话。登录完成后：
+
+```bash
+"$SKILL_DIR/scripts/check.sh"   --repo <repo>      # 确认 auth / 远端状态
+"$SKILL_DIR/scripts/publish.sh" --repo <repo> --message "<动词开头的一句话>"
+```
+
+示例一律写绝对路径：Agent 的工作目录通常不是 skill 目录，相对路径 `./scripts/...` 会找不到。
 
 Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编二进制；git 的 https 凭据通过 `gh auth git-credential` 接管，不依赖 GCM。
 
@@ -306,7 +320,7 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 
 ### 13.4 按平台选择性安装
 
-`platforms.json` 是唯一清单：哪个平台装哪些文件。两条落地方式都只带本平台的那份，另一平台的代码不进目标目录。
+`platforms.json` 是唯一清单：哪个平台装哪些文件。两条落地方式都只带本平台的那份，另一平台的代码不进目标目录。下面两条命令都在**仓库根目录**执行。
 
 ```powershell
 .\install\install.ps1 -DryRun     # Windows：只复制 .ps1，不碰 .sh
@@ -318,7 +332,7 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 ./install/install.sh
 ```
 
-安装器写入 `.platform` 标记（`windows` / `posix`），`-Uninstall` / `--uninstall` 只有标记对得上才删目录。发布侧由 `.github/workflows/package.yml` 打两个 zip（`github-publish-windows.zip` / `github-publish-posix.zip`），手机直接下 posix 那个，包里没有任何 `.ps1`。
+安装器写入 `.platform` 标记（`windows` / `posix`），`-Uninstall` / `--uninstall` 只有标记对得上才删目录。默认目标会先看客户端导出的 `DSH_HOME`（`$DSH_HOME/skills/github-publish`），没有则用 `~/.agent-skills/github-publish`，`--target` / `-Target` 永远优先。安装器**会把自己也复制过去**，所以它打印的卸载命令在装完之后确实存在，不依赖原仓库还在。发布侧由 `.github/workflows/package.yml` 打两个 zip（`github-publish-windows.zip` / `github-publish-posix.zip`），手机直接下 posix 那个，包里没有任何 `.ps1`。
 
 Android / Linux（含云主机）/ macOS 共用同一份 `install.sh` 与 `.sh` 脚本：三端只有包管理器不同，`setup.sh` 自己探测（`pkg` / `apt` / `dnf` / `brew`），非 root 时自动套 `sudo`。
 

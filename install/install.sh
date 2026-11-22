@@ -6,7 +6,8 @@
 # in carrying code it cannot run.
 #
 # Usage:
-#   ./install/install.sh                       # default target: ~/.agent-skills/github-publish
+#   ./install/install.sh                       # target defaults to $DSH_HOME/skills/github-publish
+#                                              # when DSH_HOME is set, else ~/.agent-skills/github-publish
 #   ./install/install.sh --target ~/skills/github-publish
 #   ./install/install.sh --dry-run             # print what would be copied
 #   ./install/install.sh --force               # replace an existing install
@@ -18,7 +19,13 @@
 set -u
 
 SRC="$(cd "$(dirname "$0")/.." && pwd)"
-TARGET="$HOME/.agent-skills/github-publish"
+# Default target: if a client exports DSH_HOME, that is where it scans for skills;
+# otherwise use a neutral per-user path. --target always wins.
+if [ -n "${DSH_HOME:-}" ]; then
+    TARGET="$DSH_HOME/skills/github-publish"
+else
+    TARGET="$HOME/.agent-skills/github-publish"
+fi
 DRY_RUN=0
 FORCE=0
 UNINSTALL=0
@@ -35,17 +42,20 @@ while [ $# -gt 0 ]; do
 done
 
 # shared + this platform only. No .ps1 here on purpose.
+# The installer copies itself too, so the printed uninstall command actually exists.
 FILES=(
     SKILL.md
     README.md
     LICENSE
     platforms.json
+    install/install.sh
     scripts/check.sh
     scripts/publish.sh
     scripts/scan-traces.sh
     scripts/setup.sh
     scripts/teardown.sh
 )
+DIRS=(install scripts)
 
 marker() { printf 'github-publish posix\n' > "$1"; }
 
@@ -83,11 +93,12 @@ done
 
 if [ "$DRY_RUN" -eq 1 ]; then echo; echo '[dry-run] nothing copied'; exit 0; fi
 
-mkdir -p "$TARGET/scripts"
+mkdir -p "$TARGET"
+for d in "${DIRS[@]}"; do mkdir -p "$TARGET/$d"; done
 for f in "${FILES[@]}"; do
     cp "$SRC/$f" "$TARGET/$f"
 done
-chmod +x "$TARGET"/scripts/*.sh
+chmod +x "$TARGET"/scripts/*.sh "$TARGET"/install/install.sh
 marker "$TARGET/.platform"
 
 echo

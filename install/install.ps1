@@ -4,14 +4,15 @@
 # or copied: a Windows box without bash has no use for them.
 #
 # Usage:
-#   .\install\install.ps1
+#   .\install\install.ps1                        # target defaults to $env:DSH_HOME\skills\github-publish
+#                                                # when DSH_HOME is set, else ~\.agent-skills\github-publish
 #   .\install\install.ps1 -Target "$HOME\skills\github-publish"
 #   .\install\install.ps1 -DryRun
 #   .\install\install.ps1 -Force
 #   .\install\install.ps1 -Uninstall
 
 param(
-    [string]$Target = (Join-Path $HOME '.agent-skills\github-publish'),
+    [string]$Target = '',
     [switch]$DryRun,
     [switch]$Force,
     [switch]$Uninstall
@@ -20,16 +21,26 @@ param(
 $ErrorActionPreference = 'Stop'
 $Src = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 
+# Default target: if a client exports DSH_HOME, that is where it scans for skills;
+# otherwise use a neutral per-user path. -Target always wins.
+if (-not $Target) {
+    if ($env:DSH_HOME) { $Target = Join-Path $env:DSH_HOME 'skills\github-publish' }
+    else { $Target = Join-Path $HOME '.agent-skills\github-publish' }
+}
+
 # shared + this platform only. No .sh here on purpose.
+# The installer copies itself too, so the printed uninstall command actually exists.
 $Files = @(
     'SKILL.md',
     'README.md',
     'LICENSE',
     'platforms.json',
+    'install\install.ps1',
     'scripts\check.ps1',
     'scripts\publish.ps1',
     'scripts\scan-traces.ps1'
 )
+$Dirs = @('install', 'scripts')
 
 if ($Uninstall) {
     if (-not (Test-Path -LiteralPath $Target)) { 'nothing to remove: target does not exist'; exit 0 }
@@ -62,7 +73,8 @@ foreach ($f in $Files) {
 
 if ($DryRun) { ''; '[dry-run] nothing copied'; exit 0 }
 
-New-Item -ItemType Directory -Path (Join-Path $Target 'scripts') -Force | Out-Null
+New-Item -ItemType Directory -Path $Target -Force | Out-Null
+foreach ($d in $Dirs) { New-Item -ItemType Directory -Path (Join-Path $Target $d) -Force | Out-Null }
 foreach ($f in $Files) {
     Copy-Item -LiteralPath (Join-Path $Src $f) -Destination (Join-Path $Target $f) -Force
 }

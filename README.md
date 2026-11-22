@@ -66,6 +66,8 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 
 安装器会写一个 `.platform` 标记；`install.* -Uninstall` 只在标记对得上时才删目录，避免误删你放在同一路径下的其他东西。
 
+装到哪：默认先看客户端有没有导出 `DSH_HOME`（有就装到 `$DSH_HOME/skills/github-publish`，那是客户端扫描 skill 的位置），没有则 `~/.agent-skills/github-publish`；`--target` / `-Target` 永远优先。安装器会把**自己**也复制进去，所以它打印的卸载命令装完就能用。
+
 这里没有"编译"这一步：全部是文本脚本，装 = 复制，卸 = 删除 + `teardown`。
 
 ## 关键设计
