@@ -1,4 +1,4 @@
-﻿---
+---
 name: github-publish
 description: 只要动作会落在这个 GitHub 账号或它的远端仓库上——推送、拉取、看 CI、开 Pages、建仓、发 Release、改 topics/可见性、开 PR、查远端 HEAD、凭据失效排障——就必须先走本 skill；反过来，纯本地 git 操作、写代码、构建、发布到别的平台都不用它。触发词：推送 github、同步到 github、push、拉一下远端、发布仓库、建 github 仓库、开 Pages、发 Release、看 CI、开 PR、推送失败、脱敏审查、署名痕迹。
 ---
@@ -49,11 +49,12 @@ description: 只要动作会落在这个 GitHub 账号或它的远端仓库上�
 2. **不许自动升级**：调用方说"同步"，不许顺手开 Pages、发 Release、改可见性。升级必须来自用户的当次要求。
 3. 拿不准就退到 R 只读，把状态摆出来再决定，不要凭猜先写。
 
-## 二、写类操作的四道门禁（A / B / C / D 共用，顺序不能反）
+## 二、写类操作的五道门禁（A / B / C / D 共用，顺序不能反）
 
-1. **身份门禁**：仓库本地 `user.name` / `user.email` 必须有，邮箱用 noreply（全局为空是常态，不是故障）。
-2. **脱敏门禁**：`git add` **之前**扫被跟踪文件。必查：真实姓名与同事姓名、手机号、真实邮箱、`C:\Users\<用户名>` 这类本机绝对路径、公司/客户名、`ghp_` / `github_pat_` 串、`.env`、构建产物（`bin/ obj/ *.user`）。`.gitignore` 要挡住它们，`.gitattributes` 用 `* text=auto eol=lf` 免换行噪音。
-3. **痕迹门禁**：`scripts/scan-traces.ps1 -Repo <repo>`，**只出候选、不自动改**，逐条人工判断。判据只有一条——**这段文字是不是只有坐在电脑前的人才会写？** 是就留，不是就改。
+1. **身份门禁**：仓库本地 `user.name` / `user.email` 必须有。**name 必须用 GitHub 账号名（如 `Jonah-77`），不得填真人姓名；email 用 noreply**（`<account>@users.noreply.github.com`，或带 ID 的 `<id>+<account>@users.noreply.github.com`）。全局为空是常态，不是故障。设置前先看远端已有提交的作者，沿用同一身份，别另起一个真名身份。
+2. **历史作者门禁（push 前必查）**：`git log --all --format='%an <%ae> | %cn <%ce>'` 扫**所有待推送提交**的作者与提交者。若出现真人姓名或真实邮箱（不是 GitHub 账号名 / noreply），必须先改写历史（`git filter-branch --env-filter`）再推；force push 会改写已推送历史，**需用户明确同意**并告知别人要重新 clone。只设好本地身份不够——已有提交仍带着旧作者名，推上去 GitHub 就显示真名。
+3. **脱敏门禁**：`git add` **之前**扫被跟踪文件。必查：真实姓名与同事姓名、手机号、真实邮箱、`C:\Users\<用户名>` 这类本机绝对路径、公司/客户名、`ghp_` / `github_pat_` 串、`.env`、构建产物（`bin/ obj/ *.user`）。`.gitignore` 要挡住它们，`.gitattributes` 用 `* text=auto eol=lf` 免换行噪音。仓库 URL（`package.json` 里的 `github.com/<账号>/...`）含账号名是链接本身，保留；但 LICENSE 署名宜用中性写法（如 `the project authors`）而不是账号名或真名。
+4. **痕迹门禁**：`scripts/scan-traces.ps1 -Repo <repo>`，**只出候选、不自动改**，逐条人工判断。判据只有一条——**这段文字是不是只有坐在电脑前的人才会写？** 是就留，不是就改。
 
    | 类别 | 典型形态 | 处理 |
    |---|---|---|
@@ -65,7 +66,7 @@ description: 只要动作会落在这个 GitHub 账号或它的远端仓库上�
 
    四条原则：① 先分真假阳性，`Math.Clamp`、`cursor=hand2`、`@deepseek-ai/*` 都不是痕迹；② 产品本身就是 AI 工具的仓库只清文档、不动定位；③ 删文档要成套（引用、目录树、CHANGELOG 一起清，**断链比原文更显眼**），删前本地留备份；④ 只动文字不动代码。
 
-4. **远端门禁**：写之前先 `fetch`，看本地相对远端是 `ahead` / `behind` / `diverged`。`behind` 或 `diverged` 先按 §五 B.2 处理，**不许直接 push 撞上去**。
+5. **远端门禁**：写之前先 `fetch`，看本地相对远端是 `ahead` / `behind` / `diverged`。`behind` 或 `diverged` 先按 §五 B.2 处理，**不许直接 push 撞上去**。
 
 ## 三、R 只读核查
 
@@ -107,7 +108,7 @@ git config user.email "<id>+<account>@users.noreply.github.com"
 & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -Message "<一句话，动词开头>"
 # 多行说明写文件，别在命令行拼引号：
 & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -MessageFile "$env:TEMP\msg.txt"
-# 先预演：只跑四道门禁与远端比对，列出待提交内容，不暂存、不提交、不推送
+# 先预演：只跑五道门禁与远端比对，列出待提交内容，不暂存、不提交、不推送
 & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -DryRun
 # 推完等 CI：只认本次 commit 的 headSha，超时标 pending
 & '<skill dir>\scripts\publish.ps1' -Repo '<repo>' -Message "..." -WaitCi
@@ -350,3 +351,4 @@ Android / Linux（含云主机）/ macOS 共用同一份 `install.sh` 与 `.sh` 
 - 2026-11-19 补强推送链路：门禁改为扫描「已跟踪 + 未忽略的新文件」（新建文件里的密钥原本会漏过）；`publish.ps1` 新增 `-DryRun`（不碰 index 的预演）与 `-WaitCi`（按 `headSha` 匹配、拒绝拿上一次运行的结论充数）。
 - 2026-11-19 明确触发边界：新增 §零（必须进来 / 不要进来 两张清单）与「命令简单不是跳过理由」的自我提醒；description 改成"会在 GitHub 上落地的动作必须走本 skill，纯本地操作不用"。
 - 2026-11-22 补 bash 版：`check.sh` / `publish.sh` / `scan-traces.sh`，工具路径改为参数与 PATH 解析，Termux / Linux / macOS 可直接跑；新增 `setup.sh`（装工具并记账）与 `teardown.sh`（只删自己装的），清单落在 skill 目录之外，删目录后仍可回滚。
+- 2026-11-23 补强身份与历史脱敏：身份门禁明确 name 必须用 GitHub 账号名（不得填真人姓名）；新增「历史作者门禁」——push 前扫 `git log --all` 的作者/提交者，含真名或真实邮箱必须先 `filter-branch` 改写再推（force push 需用户明确同意）。脱敏门禁补：仓库 URL 含账号名保留、LICENSE 署名用中性写法。门禁从四道变五道。

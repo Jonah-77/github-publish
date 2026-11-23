@@ -93,6 +93,28 @@ USER_MAIL="$("$GIT" config --local user.email 2>/dev/null | tr -d '\r')"
 if [ -z "$USER_NAME" ] || [ -z "$USER_MAIL" ]; then
     block 'repo-local user.name/user.email is empty; set them before committing' "$SHA" 'n/a'
 fi
+# name must be a GitHub account name, not a real human name (real names usually contain a space).
+case "$USER_NAME" in
+    *' '*) block "repo-local user.name '$USER_NAME' looks like a real name; use the GitHub account name (no spaces)" "$SHA" 'n/a' ;;
+esac
+case "$USER_MAIL" in
+    *noreply.github.com*) : ;;
+    *) block "repo-local user.email '$USER_MAIL' is not a noreply address" "$SHA" 'n/a' ;;
+esac
+
+# --- gate 1b: history author gate (before push) ---
+# Existing commits keep their original author even after local identity is set. Scan them.
+HIST_AUTHORS="$("$GIT" log --all --format='%an <%ae> | %cn <%ce>' 2>/dev/null | sort -u)"
+if printf '%s\n' "$HIST_AUTHORS" | grep -E -q '@(qq|163|126|gmail|outlook|hps\.com\.pl|netflix)\.com|@[a-z]+\.[a-z]{2,}>'; then
+    echo '--- history author gate ---'
+    printf '%s\n' "$HIST_AUTHORS" | sed 's/^/  /'
+    block 'history contains a real email in author/committer; rewrite with filter-branch before push' "$SHA" 'n/a'
+fi
+if printf '%s\n' "$HIST_AUTHORS" | grep -E -q "^[A-Z][a-z]+ [A-Z][a-z]+ <"; then
+    echo '--- history author gate ---'
+    printf '%s\n' "$HIST_AUTHORS" | sed 's/^/  /'
+    block 'history contains a real-looking author name; use the GitHub account name via filter-branch' "$SHA" 'n/a'
+fi
 
 # --- gates 2 and 3: desensitize + trace scan, before anything is staged ---
 if [ "$SKIP_GATES" -eq 0 ]; then
