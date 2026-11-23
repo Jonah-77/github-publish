@@ -49,6 +49,8 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 
 `platforms.json` 把 android / linux / macOS 归到同一个 `posix` 家族：三端脚本完全同一份，只是包管理器不同，`setup.sh` 自己探测。
 
+探测口径：**先看有没有 `pkg` 命令**（Termux 系才有），`PREFIX` 里的 `com.termux` / `/termux/` 只作兜底——App 内置的定制 Termux 路径可能完全不含 `com.termux`，只按字符串匹配会误判成 Debian 分支再撞上没有 `sudo`。没有 `sudo` 的非 root 环境，脚本会明说"无法自动安装"，不会假装能装。
+
 **只装自己平台的代码**，两条路都行：
 
 1. **下载 release 里的压缩包**（推荐，手机用这个）：`github-publish-windows.zip` 里只有 `.ps1`，`github-publish-posix.zip` 里只有 `.sh`（Android / Linux / macOS 通用），另一平台的代码根本不在包里。

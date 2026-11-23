@@ -196,6 +196,8 @@ main 保护开着时，PR 是唯一入口，**不要**为了省事去关保护�
 
 设备码属登录凭据：**不代填、不抄进回复正文**；把 `https://github.com/login/device` 在用户浏览器里打开，让他自己粘码。旧码 15 分钟失效，页面关了就重跑换新码。
 
+授权落地后，token 存在哪要看平台：有 keyring 的按 keyring，没有 keyring 的（Termux、多数 Linux 服务器）gh 会降级成明文写 `~/.config/gh/hosts.yml`（权限 600）。那也是凭据——不进仓库、不截图、不贴对话；`teardown.sh --purge-auth` 会连它一起清。
+
 ## 九、危险动作（必须拿到明确的"做"）
 
 force push（尤其 main）、改写已推送历史、删仓库、删分支、改可见性、重打已发布 tag、动协作者权限。
@@ -299,6 +301,8 @@ gh auth login --hostname github.com --git-protocol https --web
 示例一律写绝对路径：Agent 的工作目录通常不是 skill 目录，相对路径 `./scripts/...` 会找不到。
 
 Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编二进制；git 的 https 凭据通过 `gh auth git-credential` 接管，不依赖 GCM。
+
+环境探测口径：**先看有没有 `pkg` 命令**（只有 Termux 系发行版会带它），`PREFIX` 里含 `com.termux` 或 `/termux/` 只作兜底。定制发行版（比如某个 App 内置的 Termux）的路径可能完全不含 `com.termux`，只按字符串匹配会误判成 Debian 分支，然后因为没有 `sudo` 直接失败。
 
 ### 13.2 组件与 skill 绑定：先记账，再卸载
 

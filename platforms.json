@@ -1,6 +1,6 @@
 {
   "name": "github-publish",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "GitHub channel skill: classified routing, four write gates, read-only check and idempotent publish.",
   "core": [
     "SKILL.md",

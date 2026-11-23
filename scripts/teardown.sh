@@ -37,12 +37,20 @@ if [ ! -f "$STATE" ]; then
     exit 0
 fi
 
-if [ -n "${PREFIX:-}" ] && printf '%s' "$PREFIX" | grep -q 'com.termux'; then
+# Same detection as setup.sh: the `pkg` wrapper decides first, the prefix is only a fallback,
+# because custom builds may use a prefix without "com.termux".
+if command -v pkg >/dev/null 2>&1; then
+    PKG_UNINSTALL='pkg uninstall -y'
+elif [ -n "${PREFIX:-}" ] && printf '%s' "$PREFIX" | grep -qE 'com\.termux|/termux/'; then
     PKG_UNINSTALL='pkg uninstall -y'
 elif command -v apt-get >/dev/null 2>&1; then
-    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='apt-get remove -y'; else PKG_UNINSTALL='sudo apt-get remove -y'; fi
+    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='apt-get remove -y'
+    elif command -v sudo >/dev/null 2>&1; then PKG_UNINSTALL='sudo apt-get remove -y'
+    else PKG_UNINSTALL=''; fi
 elif command -v dnf >/dev/null 2>&1; then
-    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='dnf remove -y'; else PKG_UNINSTALL='sudo dnf remove -y'; fi
+    if [ "$(id -u)" -eq 0 ]; then PKG_UNINSTALL='dnf remove -y'
+    elif command -v sudo >/dev/null 2>&1; then PKG_UNINSTALL='sudo dnf remove -y'
+    else PKG_UNINSTALL=''; fi
 elif command -v brew >/dev/null 2>&1; then
     PKG_UNINSTALL='brew uninstall'
 else
