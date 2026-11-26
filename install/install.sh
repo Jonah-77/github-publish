@@ -52,6 +52,7 @@ FILES=(
     scripts/check.sh
     scripts/publish.sh
     scripts/scan-traces.sh
+    scripts/issue.sh
     scripts/setup.sh
     scripts/teardown.sh
 )

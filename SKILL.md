@@ -1,6 +1,6 @@
----
+﻿---
 name: github-publish
-description: 只要动作会落在这个 GitHub 账号或它的远端仓库上——推送、拉取、看 CI、开 Pages、建仓、发 Release、改 topics/可见性、开 PR、查远端 HEAD、凭据失效排障——就必须先走本 skill；反过来，纯本地 git 操作、写代码、构建、发布到别的平台都不用它。触发词：推送 github、同步到 github、push、拉一下远端、发布仓库、建 github 仓库、开 Pages、发 Release、看 CI、开 PR、推送失败、脱敏审查、署名痕迹。
+description: 只要动作会落在这个 GitHub 账号或它的远端仓库上——推送、拉取、看 CI、开 Pages、建仓、发 Release、改 topics/可见性、开 PR、提 issue、回复 issue、给别人的仓库报 bug/提功能、查远端 HEAD、凭据失效排障——就必须先走本 skill；凡是对外发到 GitHub 的文字（issue 正文、PR 描述、评论）都要过脱敏门禁。反过来，纯本地 git 操作、写代码、构建、发布到别的平台都不用它。触发词：推送 github、同步到 github、push、拉一下远端、发布仓库、建 github 仓库、开 Pages、发 Release、看 CI、开 PR、提 issue、报 bug、反馈给作者、回复维护者、推送失败、脱敏审查、署名痕迹。
 ---
 
 # GitHub 通道（本机）
@@ -17,7 +17,8 @@ description: 只要动作会落在这个 GitHub 账号或它的远端仓库上�
 
 - 命令里出现 `gh`（任何子命令）；命令里出现 `git push / fetch / pull / clone / ls-remote`，且远端是 `github.com`。
 - 用户说了这些意思：推到 GitHub、同步到仓库、开 Pages、建仓库、发版、改仓库设置、查 CI、开 PR、为什么推不上去。
-- 要给公开仓库做提交前的脱敏 / 署名痕迹审查。
+- 用户说了这些意思：提 issue、给作者反馈、报 bug、提功能请求、回复某个 issue、催维护者。
+- 要给公开仓库做提交前的脱敏 / 署名痕迹审查；要给任何 GitHub 仓库写 issue / PR / 评论前的脱敏审查（**这些文字落在别人的仓库上，脱敏标准比自家仓库更严**）。
 
 **不要进来**
 
@@ -41,7 +42,8 @@ description: 只要动作会落在这个 GitHub 账号或它的远端仓库上�
 | **B 增量同步** | 仓库已存在、本地有改动要推 | §五 / `scripts/publish.ps1` | 门禁 → 提交 → 推送 → 校验 | 不需要（变更完成后立即推是既定偏好） |
 | **C 发布面变更** | 开/改 Pages 源、改 topics、发 Release、改可见性或协作者 | §六 手工步骤 | **一次只改一项** | **逐项确认** |
 | **D 分支与 PR** | 非 main 的改动、需要评审 | §七 | 建分支 / 推分支 / 建 PR | PR 标题正文要先看过 |
-| **E 排障** | 推送被拒、404、作者名不对、凭据失效 | §八 症状表 | 按症状处理 | 视动作而定 |
+| **I Issue 与对外发言** | 给任意仓库（含第三方）提 issue、回复 issue、发评论、补充复现信息 | §八 / `scripts/issue.ps1`、`scripts/issue.sh` | 一次一个 issue（正文先预演过） | **必须**：仓库、标题、正文脱敏结果 |
+| **E 排障** | 推送被拒、404、作者名不对、凭据失效 | §九 症状表 | 按症状处理 | 视动作而定 |
 
 **三条路由纪律**
 
@@ -176,7 +178,63 @@ git -C <repo> push -u origin <branch>
 
 main 保护开着时，PR 是唯一入口，**不要**为了省事去关保护或直推。
 
-## 八、E 排障
+## 八、I 类：Issue 与对外发言（含三方仓库）
+
+**一句话**：issue 发出去就删不掉，所以顺序固定——先脱敏、再预演、最后才发；对外文字只用「能公开的最小信息」。
+
+### I.1 走脚本，别手拼 `gh issue create`
+
+```powershell
+# Windows
+& '<skill dir>\scripts\issue.ps1' -Repo 'owner/repo' -TitleFile "$env:TEMP\issue-title.txt" -BodyFile "$env:TEMP\issue-body.md" -DryRun
+& '<skill dir>\scripts\issue.ps1' -Repo 'owner/repo' -TitleFile "$env:TEMP\issue-title.txt" -BodyFile "$env:TEMP\issue-body.md" -DenyList '公司名','客户名','项目名'
+```
+
+```bash
+# Termux / Linux / macOS：同一套语义
+scripts/issue.sh --repo owner/repo --title-file /tmp/issue-title.txt --body-file /tmp/issue-body.md --dry-run
+scripts/issue.sh --repo owner/repo --title-file /tmp/issue-title.txt --body-file /tmp/issue-body.md --deny-list '公司名,客户名'
+```
+
+脚本顺序固定：读标题正文 → 脱敏门禁 → 预演（`-DryRun` / `--dry-run` 只打印，不创建）→ `gh issue create --body-file` → 输出四行
+`STATUS=ok|dry-run|blocked|failed` / `CLASS=issue` / `URL=<issue 地址>` / `NOTE=<标题或原因>`。
+
+`-DenyList` / `--deny-list` 用来挡脚本认不出的专有名词（公司、客户、项目、同事姓名）；**命中就 exit 2，不会自己删词**，必须由人改正文。
+
+三条补充（都会踩）：
+
+- **网络抖动自动兜底**：`gh issue create` 走 GraphQL，本机偶发 `EOF`。脚本失败后自动改用 REST `POST /repos/{owner}/{repo}/issues`，且**先用 REST 查一遍同标题的已有 issue**（响应丢了但帖子已建的情况很常见），查到就返回原 URL、不重复开。
+- **标签加不上是正常的**：给别人的仓库打 label 需要 triage / admin 权限，`403 Must have admin rights to Repository` 就是没权限，**不要重试**，让维护者自己打。
+- **先确认仓库开没开 issues**：`the 'owner/repo' repository has disabled issues` 就直接换它的主仓库（插件仓库关了就提到主程序仓库），标题里用 `[PluginName]` 标出模块，正文第一段写清是哪个插件。
+
+### I.2 对外正文的脱敏口径（比自家仓库更严）
+
+| 必须去掉 | 换成 |
+|---|---|
+| 本机绝对路径、用户名、计算机名（`C:\Users\<me>\…`、`D:\…`、桌面路径） | "a local copy"、"the temp folder" |
+| 真实文件名、单据名、项目名、编号 | "a one-page docx with one picture" 这类可公开描述 |
+| 姓名、同事名、公司 / 客户 / 门店 / 品牌 | 一律不提；需要指代时用角色词，如 "the maintainer"、"the user" |
+| 邮箱、手机号、工号、订单号、内网 IP / 域名 | 不出现，连打码形式也不要 |
+| token、设备码、cookie、会话 ID | 任何形态都禁止（脚本会拦 `ghp_` / `gho_` / `github_pat_`） |
+| 内部工具名、内部系统截图、私有仓库地址 | 换成通用描述 |
+| 与本问题无关的调试细节 | 只留「能复现的最小信息」 |
+
+**该留的**：软件与插件版本、平台、可复现步骤、最小 XML / 代码片段、判定标准、以及「我们这边的临时绕过方案」——这些是维护者真正需要的，且不含个人与组织信息。
+
+### I.3 三方仓库的额外纪律
+
+1. **先搜重**：`gh search issues --repo <owner>/<repo> "<关键词>"`；已有同类就补信息到那一贴，不另开。
+2. **一贴一件事**：问题 / 证据 / 临时绕过 / 建议修法分段落写清楚，并明确标注哪部分是临时措施、哪部分是我们自己的补丁。
+3. **不把补丁当结论**：可以说"愿意提 PR"，但正文以他人能复现为准，不要求对方接受我们的实现方式。
+4. **语言跟仓库走**（英文仓库写英文），术语用仓库自己的词，别直接翻译内部叫法。
+5. **发完回读**：`gh issue view <URL>` 看一次渲染结果，确认没漏敏感行、代码块没坏。
+6. **选对仓库**：插件类问题先在插件自己的仓库查 issues 是否启用；禁用就落到主仓库，标题加 `[插件名]` 前缀，正文首段说明模块。
+
+### I.4 故障类 issue 的固定骨架
+
+`Summary` → `Environment` → `Steps to reproduce` → `Expected / Actual` → `Evidence`（最小片段）→ `Root cause (if known)` → `Workaround (temporary)` → `Suggested fix` → `Scope / not covered`
+
+## 九、E 排障
 
 | 症状 | 原因 | 做法 |
 |---|---|---|
@@ -199,13 +257,13 @@ main 保护开着时，PR 是唯一入口，**不要**为了省事去关保护�
 
 授权落地后，token 存在哪要看平台：有 keyring 的按 keyring，没有 keyring 的（Termux、多数 Linux 服务器）gh 会降级成明文写 `~/.config/gh/hosts.yml`（权限 600）。那也是凭据——不进仓库、不截图、不贴对话；`teardown.sh --purge-auth` 会连它一起清。
 
-## 九、危险动作（必须拿到明确的"做"）
+## 十、危险动作（必须拿到明确的"做"）
 
 force push（尤其 main）、改写已推送历史、删仓库、删分支、改可见性、重打已发布 tag、动协作者权限。
 
 统一口径：先把代价说清（不可逆、别人的 clone 失效、外部引用断链），等用户明确同意；**"你没反对"不算同意**。改历史比痕迹本身更显眼，能不重写就不重写。
 
-## 十、被其他工具 / Agent 调用时的契约
+## 十一、被其他工具 / Agent 调用时的契约
 
 调用方可能是别的客户端会话、另一个 Agent，或本机脚本。**双方都按这个形状来**，否则就是"一锅炖"。
 
@@ -214,8 +272,9 @@ force push（尤其 main）、改写已推送历史、删仓库、删分支、�
 | 字段 | 含义 |
 |---|---|
 | `repoPath` | 仓库绝对路径 |
-| `intent` | `r`（只读）/ `sync`（增量）/ `surface`（发布面单项）/ `init`（首次建仓） |
+| `intent` | `r`（只读）/ `sync`（增量）/ `surface`（发布面单项）/ `init`（首次建仓）/ `issue`（对外提 issue 或回复） |
 | `message` | `sync` 必填；没给就**拒绝提交**，不许自己编提交说明 |
+| `repo` / `title` / `body` | `issue` 必填；`repo` 为 `owner/name`（三方仓库照写），`body` 给文件路径**或**正文，二者择一 |
 | `allow` | 调用方已拿到的用户确认范围，如 `["pages"]`；**没列出的发布面动作一律不做** |
 | `flags`（可选） | `dryRun`（只要预演结果）、`waitCi`（推完要 CI 结论）——都只作用于 sync，不许借它做别的事 |
 
@@ -223,11 +282,13 @@ force push（尤其 main）、改写已推送历史、删仓库、删分支、�
 
 ```
 STATUS=ok|nothing-to-push|blocked|failed
-CLASS=r|sync|init|surface
+CLASS=r|sync|init|surface|issue
 SHA=<短 SHA 或 ->
 REMOTE=in-sync|ahead|behind|diverged|n/a
 NOTE=<一句话原因或下一步>
 ```
+
+`CLASS=issue` 时 `SHA` 恒为 `-`、`REMOTE=n/a`，真正的地址放在 `NOTE` 或调用方自行取脚本的 `URL=` 行。
 
 **约束（双向）**
 
@@ -235,11 +296,11 @@ NOTE=<一句话原因或下一步>
 2. **不留在中间态**：冲突未解决必须恢复到干净工作树（`rebase --abort` / `merge --abort`）再退出，并在 `NOTE` 写明。
 3. 不静默改写历史：rebase 只允许两种情形——本地提交尚未推送，或远端无分叉的 behind。
 4. 不打印凭据：token、设备码不进 stdout，也不进回复正文。
-5. 三端一致：解释器与工具用绝对路径（node、python 用各安装目录下的可执行文件，git、gh 见 §十二），不依赖某端注入变量。
+5. 三端一致：解释器与工具用绝对路径（node、python 用各安装目录下的可执行文件，git、gh 见 §十三），不依赖某端注入变量。
 6. **非 GitHub 的工作不进本 skill**：写代码、本地打包、传到别的平台一律走各自通道。
 7. 并发：同一仓库不许两个调用方同时 sync；动手前看 `.git/rebase-merge`、`.git/merge`、`.git/index.lock`，存在即报 `STATUS=blocked`。
 
-## 十一、硬规矩
+## 十二、硬规矩
 
 1. 设备码 / token 不进对话正文，不写进仓库，也不写进任何 `.md`。
 2. 提交身份用 noreply 邮箱，不用真实邮箱。
@@ -252,8 +313,10 @@ NOTE=<一句话原因或下一步>
 9. 不伪造署名：不写"纯手写""全部原创"，也不替仓库编假作者故事。
 10. 脚本保持纯 ASCII（PS 5.1 与 7 都能跑）；带中文的 `.ps1` 必须 UTF-8 **带 BOM**。
 11. 只读与写类分开：`check.ps1` 不写盘、不推、不改仓库状态。
+12. **对外发言先脱敏**：issue / PR 描述 / 评论发出去删不掉，正文必须过 `issue.ps1` / `issue.sh` 的门禁；命中 `-DenyList` 就由人改，不由脚本删词。
+13. **三方仓库不重复开贴**：建 issue 前先 `gh search issues` 搜重；给别人的仓库打 label 403 属无权限，不重试。
 
-## 十二、本机事实（照抄，别猜）
+## 十三、本机事实（照抄，别猜）
 
 | 项 | 值 |
 |---|---|
@@ -265,7 +328,7 @@ NOTE=<一句话原因或下一步>
 | 网络特征 | 偶发 `Recv failure`，重试一次基本能过 |
 | 主力仓库示例 | `<owner>/<repo>`（Pages 源 `main` + `/docs`） |
 
-## 十三、跨平台：手机 / Linux / macOS
+## 十四、跨平台：手机 / Linux / macOS
 
 Windows 以外的场合（Android 的 Termux、Linux、macOS）没有 PowerShell，用同一套流程的 bash 版，语义与 PowerShell 版一致，输出仍是四行 `STATUS / CLASS / SHA / REMOTE / NOTE`。
 
@@ -274,6 +337,7 @@ Windows 以外的场合（Android 的 Termux、Linux、macOS）没有 PowerShell
 | 只读核查 | `scripts/check.ps1` | `scripts/check.sh` |
 | 增量同步 | `scripts/publish.ps1` | `scripts/publish.sh` |
 | 痕迹扫描 | `scripts/scan-traces.ps1` | `scripts/scan-traces.sh` |
+| 提 issue / 对外发言 | `scripts/issue.ps1` | `scripts/issue.sh` |
 | 装/卸工具链 | 手工 | `scripts/setup.sh` / `scripts/teardown.sh` |
 
 bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH 的顺序解析，不写死 `C:\Program Files\...`。
@@ -352,3 +416,4 @@ Android / Linux（含云主机）/ macOS 共用同一份 `install.sh` 与 `.sh` 
 - 2026-11-19 明确触发边界：新增 §零（必须进来 / 不要进来 两张清单）与「命令简单不是跳过理由」的自我提醒；description 改成"会在 GitHub 上落地的动作必须走本 skill，纯本地操作不用"。
 - 2026-11-22 补 bash 版：`check.sh` / `publish.sh` / `scan-traces.sh`，工具路径改为参数与 PATH 解析，Termux / Linux / macOS 可直接跑；新增 `setup.sh`（装工具并记账）与 `teardown.sh`（只删自己装的），清单落在 skill 目录之外，删目录后仍可回滚。
 - 2026-11-23 补强身份与历史脱敏：身份门禁明确 name 必须用 GitHub 账号名（不得填真人姓名）；新增「历史作者门禁」——push 前扫 `git log --all` 的作者/提交者，含真名或真实邮箱必须先 `filter-branch` 改写再推（force push 需用户明确同意）。脱敏门禁补：仓库 URL 含账号名保留、LICENSE 署名用中性写法。门禁从四道变五道。
+- 2026-11-26 新增 **I 类：Issue 与对外发言**（六类路由 → 七类）：`scripts/issue.ps1` / `scripts/issue.sh`（脱敏门禁 → 预演 → `gh issue create`，GraphQL 失败自动 REST 兜底并先查重）；补「对外正文脱敏口径」表、三方仓库六条纪律、故障类 issue 固定骨架；契约增 `intent=issue` 与 `CLASS=issue`；硬规矩加第 12、13 条（对外发言先脱敏、三方仓库先搜重）；`platforms.json` 升到 2.3.0，打包与安装清单同步加 issue 脚本。

@@ -4,9 +4,9 @@
 
 ## 它解决什么
 
-直接用 `gh` / `git push` 处理仓库，常见的坑是：把本机私路径和真实邮箱推上公开仓库、远端已经领先还硬推、推送命令没报错但不确定到底上没上去。这个 skill 把动作拆成六类，每一类只有一条路径。
+直接用 `gh` / `git push` 处理仓库，常见的坑是：把本机私路径和真实邮箱推上公开仓库、远端已经领先还硬推、推送命令没报错但不确定到底上没上去。这个 skill 把动作拆成七类，每一类只有一条路径。
 
-## 六类路由
+## 七类路由
 
 | 类别 | 场景 | 入口 |
 |---|---|---|
@@ -15,9 +15,10 @@
 | B 增量同步 | 仓库已存在、本地有改动 | `scripts/publish.ps1` |
 | C 发布面变更 | 开 Pages、改 topics、发 Release、改可见性 | 手工步骤，一次只改一项 |
 | D 分支与 PR | 非 main 的改动、需要评审 | 建分支 / 推分支 / 建 PR |
+| I Issue 与对外发言 | 给任意仓库（含三方）提 issue、回复、补充复现 | `scripts/issue.ps1` / `scripts/issue.sh`（脱敏门禁 + 预演 + 查重） |
 | E 排障 | 推送被拒、404、作者名不对、凭据失效 | 症状表 |
 
-写类操作（A / B / C / D）统一走四道门禁，顺序不能反：**身份 → 脱敏 → 痕迹 → 远端**。
+写类操作（A / B / C / D）统一走五道门禁，顺序不能反：**身份 → 历史作者 → 脱敏 → 痕迹 → 远端**。I 类不动仓库，但正文同样要过脱敏门禁：issue 发出去删不掉。
 
 ## 目录
 
@@ -28,9 +29,11 @@ LICENSE
 scripts/check.ps1          # Windows：只读核查，不写盘不推送
 scripts/publish.ps1        # Windows：门禁 → fetch 比对 → add/commit/push → ls-remote 校验
 scripts/scan-traces.ps1    # Windows：署名痕迹扫描，只出候选不自动改
+scripts/issue.ps1          # Windows：对外提 issue，脱敏门禁 → 预演 → 创建（GraphQL 失败自动 REST 兜底）
 scripts/check.sh           # Termux / Linux / macOS：同 check.ps1
 scripts/publish.sh         # Termux / Linux / macOS：同 publish.ps1
 scripts/scan-traces.sh     # Termux / Linux / macOS：同 scan-traces.ps1
+scripts/issue.sh           # Termux / Linux / macOS：同 issue.ps1
 scripts/setup.sh           # 装缺的工具，并把"装了什么"记成清单
 scripts/teardown.sh        # 按清单只删自己装的那部分
 install/install.ps1        # Windows 安装器：只复制 Windows 那份
@@ -42,8 +45,8 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 
 | 平台 | 运行时 | 入口脚本 | setup / teardown |
 |---|---|---|---|
-| Windows | PowerShell 5.1 / 7.x | `check.ps1` / `publish.ps1` / `scan-traces.ps1` | 手工装 gh（winget），卸 = 删目录 |
-| Android（Termux） | bash 4+ | `check.sh` / `publish.sh` / `scan-traces.sh` | `setup.sh` / `teardown.sh`（`pkg`） |
+| Windows | PowerShell 5.1 / 7.x | `check.ps1` / `publish.ps1` / `scan-traces.ps1` / `issue.ps1` | 手工装 gh（winget），卸 = 删目录 |
+| Android（Termux） | bash 4+ | `check.sh` / `publish.sh` / `scan-traces.sh` / `issue.sh` | `setup.sh` / `teardown.sh`（`pkg`） |
 | Linux（含云主机） | bash 4+ | 同上 | 同上（`apt` / `dnf`，非 root 自动加 `sudo`） |
 | macOS | bash 4+ | 同上 | 同上（`brew`） |
 
@@ -78,6 +81,7 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 - **不许硬推**：写之前先 `fetch`，`behind` 或 `diverged` 先处理再看，`--force` 不碰 main。
 - **推送后必须核对**：`ls-remote` 或 `gh repo view`，不只信「命令没报错」。
 - **幂等**：工作树干净且与远端一致时输出 `nothing-to-push`，不伪造提交。
+- **曝光面比仓库更严**：issue / PR / 评论是对外发言，正文先过 `issue.ps1` / `issue.sh` 的脱敏门禁，三方仓库先搜重再开贴。
 - **机器可读输出**：固定四行 `STATUS / CLASS / SHA / REMOTE`，便于被其他工具调用。
 
 ## 前置条件
@@ -85,7 +89,7 @@ install/install.sh         # Termux / Linux / macOS 安装器：只复制 POSIX 
 - Windows 需 PowerShell 5.1 / 7；Android（Termux）/ Linux / macOS 需 bash 4+
 - [GitHub CLI](https://cli.github.com/) 已安装并 `gh auth login`（scopes 需含 `repo`）；Termux 用 `pkg install gh`
 - git 提交身份建议用 `noreply` 邮箱
-- `.ps1` 的 gh / git 路径按本机实际情况调整（见 SKILL.md §十二）；`.sh` 用参数或 `GIT_BIN` / `GH_BIN` 覆盖
+- `.ps1` 的 gh / git 路径按本机实际情况调整（见 SKILL.md §十三）；`.sh` 用参数或 `GIT_BIN` / `GH_BIN` 覆盖
 
 ## 安装与卸载（组件跟着账本走）
 

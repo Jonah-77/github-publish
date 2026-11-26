@@ -38,7 +38,8 @@ $Files = @(
     'install\install.ps1',
     'scripts\check.ps1',
     'scripts\publish.ps1',
-    'scripts\scan-traces.ps1'
+    'scripts\scan-traces.ps1',
+    'scripts\issue.ps1'
 )
 $Dirs = @('install', 'scripts')
 

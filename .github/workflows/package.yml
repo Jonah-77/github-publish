@@ -28,12 +28,13 @@ jobs:
           done
 
           # windows payload: PowerShell only
-          cp scripts/check.ps1 scripts/publish.ps1 scripts/scan-traces.ps1 dist/windows/scripts/
+          cp scripts/check.ps1 scripts/publish.ps1 scripts/scan-traces.ps1 \
+             scripts/issue.ps1 dist/windows/scripts/
           cp install/install.ps1 dist/windows/install/
 
           # posix payload: bash only
           cp scripts/check.sh scripts/publish.sh scripts/scan-traces.sh \
-             scripts/setup.sh scripts/teardown.sh dist/posix/scripts/
+             scripts/issue.sh scripts/setup.sh scripts/teardown.sh dist/posix/scripts/
           cp install/install.sh dist/posix/install/
           chmod +x dist/posix/scripts/*.sh dist/posix/install/install.sh
 
