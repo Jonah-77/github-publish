@@ -342,7 +342,7 @@ Windows 以外的场合（Android 的 Termux、Linux、macOS）没有 PowerShell
 
 bash 版的工具路径按 `--git` / `--gh` → `GIT_BIN` / `GH_BIN` → PATH 的顺序解析，不写死 `C:\Program Files\...`。
 
-### 13.1 手机（Termux）从零到能推
+### 14.1 手机（Termux）从零到能推
 
 先定安装目录。任何客户端如果导出了 `DSH_HOME`，安装器会自动装到 `$DSH_HOME/skills/github-publish`（那是客户端扫描 skill 的位置）；没有这个变量时落到 `~/.agent-skills/github-publish`。两者都能用 `--target` 覆盖。
 
@@ -369,7 +369,7 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 
 环境探测口径：**先看有没有 `pkg` 命令**（只有 Termux 系发行版会带它），`PREFIX` 里含 `com.termux` 或 `/termux/` 只作兜底。定制发行版（比如某个 App 内置的 Termux）的路径可能完全不含 `com.termux`，只按字符串匹配会误判成 Debian 分支，然后因为没有 `sudo` 直接失败。
 
-### 13.2 组件与 skill 绑定：先记账，再卸载
+### 14.2 组件与 skill 绑定：先记账，再卸载
 
 `setup.sh` 干两件事：缺什么装什么；**把装了什么写进 `$HOME/.github-publish/state.tsv`**。清单记三类——`pkg`（包）、`file`（创建的文件）、`gitconfig`（改过的配置键）——并且只记"本次由我安装"的，事先就存在的标成 `preexisting`。
 
@@ -383,11 +383,11 @@ Termux 里 `pkg install gh` 是官方支持的正规渠道，不需要自己编�
 
 一条前提要认清：包管理器层面做不到"删目录即自动卸载"，所以约定是**先跑卸载脚本，再删目录**；清单放在 skill 目录之外就是为了这个。
 
-### 13.3 本仓库自己的例外
+### 14.3 本仓库自己的例外
 
-本仓库的 `SKILL.md` 和 scanner 本身就是在写这些痕迹词，跑 `publish` 必然出现候选。逐条确认全是文档与正则字面量之后，按 §二 的约定用 `--skip-gates` 放行——这是"人工确认后的放行"，不是把门禁关掉跳过审查。
+本仓库的 `SKILL.md`、scanner 与 `issue.*` 里的脱敏正则本身就是在写这些痕迹词，跑 `publish` 必然出现候选。逐条确认全是文档与正则字面量之后，按 §二 的约定用 `--skip-gates` 放行——这是"人工确认后的放行"，不是把门禁关掉跳过审查。
 
-### 13.4 按平台选择性安装
+### 14.4 按平台选择性安装
 
 `platforms.json` 是唯一清单：哪个平台装哪些文件。两条落地方式都只带本平台的那份，另一平台的代码不进目标目录。下面两条命令都在**仓库根目录**执行。
 
